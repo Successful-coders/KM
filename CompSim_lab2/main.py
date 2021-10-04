@@ -84,8 +84,6 @@ def test1(x, n, param):
     if(Q_ >= Q_nizh and Q_<= Q_verh):
         test = True
     return test
-    # columns = list("qqqqqq")
-    # create_table(Q_nizh, Q_verh, Q, Q_, test, 1, columns)
 
 def create_table(val1, val2, val3, val4, val5, val6, columns):
     fig, ax = plot.subplots()
@@ -106,27 +104,139 @@ def test2(x, n, param):
     x_new = []
     for i in range(n):
         x_new.append(x[i])
-    interv = n/param['K1']
-    v = np.zeros(int(param['K1']))
-    start = 0
-    w = np.ones_like(x_new) / n
+
+    weights = np.ones_like(x_new) / n
+    plot.ylabel('Частота')
+    plot.xlabel('Интервалы')
+    # Интервалы
+    kint = plot.hist(x_new, int(param['K1']), weights=weights)
+
+    v = 1 / int(param['K1'])
+    # Мат ожидание
+    M = np.mean(x_new)
+    # Дисперсия
+    D = np.var(x_new)
+
+    U = scipy.stats.norm.ppf(1 - param['alpha']/2)
+    # create dov int
+    dov_int = np.zeros((int(param['K1']), 2))
+    for i in range (int(param['K1'])):
+        dov_int[i][0] = kint[0][i] - U * math.sqrt((int(param['K1']) - 1) / n) / int(param['K1'])
+        dov_int[i][1] = kint[0][i] + U * math.sqrt((int(param['K1']) - 1) / n) / int(param['K1'])
+
+    temp = []
+    result = True
     for i in range(int(param['K1'])):
-        v[i] = 0
-        end = round(start + interv)
-        for j in range(start, end):
-            if(x[j] < start):
-                v[i] += 1
-        v[i] = v[i]/n
-    print(1)
+        if v > dov_int[i][0] and v < dov_int[i][1]:
+            result = True
+        else:
+            result = False
+    M_teor = int(param['m']) / 2
+    D_teor = int(param['m']) ** 2 / 12
+    # доверительные интервалы для мат. ожидания
+    dov_int_M = np.zeros((2))
+    dov_int_M[0] = M - U * math.sqrt(D) / math.sqrt(n)
+    dov_int_M[1] = M + U * math.sqrt(D) / math.sqrt(n)
+
+    # доверительные интервалы для дисперсии
+    dov_int_D = np.zeros((2))
+
+    dov_int_D[0] = (n - 1) * D / (scipy.stats.chi2.ppf(1 - param['alpha'] / 2, n-1))
+    dov_int_D[1] = (n - 1) * D / (scipy.stats.chi2.ppf(param['alpha'] / 2, n-1))
+
+    return result
+
+
+def test3(x, n, param):
+    t = int((n - 1) / param['r'])
+    x_new = np.zeros((int(param['r']), t))
+    for i in range(int(param['r'])):
+        for j in range(t):
+            x_new[i][j] = x[(i+1) * j + (i+1)]
+    
+    res1 = test1(x, n, param)
+    res2 = test2(x, n, param)
+
+    if(res1 and res2):
+        return True
+    else:
+        return False
+
+def chi_test(x, n, param):
+    x_new = []
+    for i in range(n):
+        x_new.append(x[i])
+    weights = np.ones_like(x_new) / len(x_new)
+    S = 0
+    P = 1 / int(param['K1'])
+    plot.ylabel('Частота')
+    plot.xlabel('Интервалы')
+    kint = plot.hist(x_new, int(param['K1']), weights=weights)
+
+    for i in range(int(param['K1'])):
+        S = S + (kint[0][i] - P)**2 / P
+    S = S * len(x)
+    plot.show()
+    if scipy.stats.chi2.ppf(1-param['alpha'], param['K1'] - 1) > S:
+        return True
+    else:
+        return False
+
+# функция распределения
+F = lambda x, n: x/ (n - 1) 
+
+def kolmogorov(x, n, param):
+    x_new = []
+    for i in range(n):
+        x_new.append(x[i])
+
+    x_new.sort()
+
+    D_plus = []
+    i = 1
+    D_minus = []
+    for x in x_new:
+        D_minus.append(F (x, n) - (i - 1) / n)
+        D_plus.append(i / n - F(x, n))
+        i = i + 1
+
+    D_p = max(D_plus)
+    D_m = max(D_minus)
+    D = max(D_m, D_p)
+    # K = надо посчитать чему равно К
+    S = (6 * n * D + 1) / (6 * np.sqrt(n))
+    P = 1 - K
+    if(P > param['alpha']):
+        return True # нет оснований для отклонения
+    else:
+        S_krit = 1.3581
+        if(S > S_krit):
+            return False # отклоняется
+        else:
+            return True
+
+
+
 
 def main():
-    param = convert_param('CompSim_lab2/input.txt')
-    x = create_freq(1000, param)
+    param = convert_param('KM\CompSim_lab2\input.txt')
+    N = 1000
+    gen = 2
+    if (gen == 1):
+        x = create_freq(N, param)
+    else:
+        x = [random.randint(param['a'], param['m']) for i in range(N)]
     T, x = calc_period(x)
     if(T < 100):
         print('Change parametrs')
     else:
-        test2(x, 40, param)
-    
+        kolmogorov(x, 40, param)
+        # test1(x, 100, param)
+
+        # test2(x, 40, param)
+        # test2(x, 100, param)
+
+        # test3(x, 40 / int(param['r']), param)
+        # test3(x, 100 / int(param['r']), param)
 
 main()
