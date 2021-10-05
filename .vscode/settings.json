@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "d:/7 семестр/км/KM/.venv/Scripts/python",
+    "python.pythonPath": "/Users/voronik/Desktop/UNIVERSITY/7 семестр/КМ/Labs/Lab2/KM/.venv/bin/python3",
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true
 }

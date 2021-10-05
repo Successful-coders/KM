@@ -105,21 +105,6 @@ def test1(x, n, param):
     plot.show()
     return test
 
-def create_table(val1, val2, val3, val4, val5, val6, columns):
-    fig, ax = plot.subplots()
-    values = np.array((val1, val2, val3, val4, val5, val6))
-    # hide axes
-    fig.patch.set_visible(False)
-    ax.axis('off')
-    ax.axis('tight')
-
-    ax.table(cellText=values, colLabels=columns, loc='center')
-
-    fig.tight_layout()
-
-    plot.show()
-
-
 def test2(x, n, param):
     x_new = []
     for i in range(n):
@@ -138,16 +123,18 @@ def test2(x, n, param):
     D = np.var(x_new)
 
     U = scipy.stats.norm.ppf(1 - param['alpha']/2)
-    df = pd.DataFrame()
     # create dov int
     dov_int = np.zeros((int(param['K1']), 2))
     for i in range (int(param['K1'])):
         dov_int[i][0] = kint[0][i] - U * math.sqrt((int(param['K1']) - 1) / n) / int(param['K1'])
         dov_int[i][1] = kint[0][i] + U * math.sqrt((int(param['K1']) - 1) / n) / int(param['K1'])
-        df['Нижнее знач. дов. интервала'] = [np.round(pd.Series(dov_int[i][0]), 5)  for i in range(int(param['K1']))]
-        df['Верхнее знач. дов. интервала'] = [np.round(pd.Series(dov_int[i][1]), 5) for i in range(int(param['K1']))]
+        print(np.round((dov_int[i][0]), 5))
+    df = pd.DataFrame()
+    # df['Нижнее знач. дов. интервала'] = [np.round(pd.Series(dov_int[i][0]), 5)  for i in range(int(param['K1']))]
+    # df['Верхнее знач. дов. интервала'] = [np.round(pd.Series(dov_int[i][1]), 5) for i in range(int(param['K1']))]
 
-    df['v теоретическое'] = str(np.round(v, 3))
+    # df['v теоретическое'] = str(np.round(v, 3))
+    print(v)
     result = False
     temp = []
     for i in range(int(param['K1'])):
@@ -157,45 +144,45 @@ def test2(x, n, param):
         else:
             temp.append('-')
     df['v в интервале'] = temp
+    # print(temp)
 
-    # M_teor = int(param['m']) / 2
-    # D_teor = int(param['m']) ** 2 / 12
-    # df['M_teor'] = pd.Series(M_teor)
-    # # доверительные интервалы для мат. ожидания
-    # dov_int_M = np.zeros((2))
-    # dov_int_M[0] = M - U * math.sqrt(D) / math.sqrt(n)
-    # dov_int_M[1] = M + U * math.sqrt(D) / math.sqrt(n)
-    # df['Нижнее знач. дов. интервала M'] = np.round(pd.Series(dov_int_M[i][0]), 5)
-    # df['Верхнее знач. дов. интервала M'] = np.round(pd.Series(dov_int_M[i][1]), 5)
-    # if M_teor > dov_int_M[i][0] and M_teor < dov_int_M[i][1]:
-    #     result = True
-    #     df['M в интервале'] = pd.Series('+')
-    # else:
-    #     result = False
-    #     df['M в интервале'] = pd.Series('-')
+    df1 = pd.DataFrame()
+    M_teor = int(param['m']) / 2
+    D_teor = int(param['m']) ** 2 / 12
+    df1['M_teor'] = pd.Series(M_teor)
+    # доверительные интервалы для мат. ожидания
+    dov_int_M = np.zeros((2))
+    dov_int_M[0] = M - U * math.sqrt(D) / math.sqrt(n)
+    dov_int_M[1] = M + U * math.sqrt(D) / math.sqrt(n)
+    df1['Нижнее знач. дов. интервала M'] = np.round(pd.Series(dov_int_M[0]), 5)
+    df1['Верхнее знач. дов. интервала M'] = np.round(pd.Series(dov_int_M[1]), 5)
+    if M_teor > dov_int_M[0] and M_teor < dov_int_M[1]:
+        result = True
+        df1['M в интервале'] = pd.Series('+')
+    else:
+        result = False
+        df1['M в интервале'] = pd.Series('-')
 
-    # df['D_teor'] = pd.Series(D_teor)
-    # # доверительные интервалы для дисперсии
-    # dov_int_D = np.zeros((2))
-    # dov_int_D[0] = (n - 1) * D / (scipy.stats.chi2.ppf(1 - param['alpha'] / 2, n-1))
-    # dov_int_D[1] = (n - 1) * D / (scipy.stats.chi2.ppf(param['alpha'] / 2, n-1))
-    # df['Нижнее знач. дов. интервала D'] = np.round(pd.Series(dov_int_D[i][0]), 5)
-    # df['Верхнее знач. дов. интервала D'] = np.round(pd.Series(dov_int_D[i][1]), 5)
-    # if D_teor > dov_int_D[i][0] and D_teor < dov_int_D[i][1]:
-    #     result = True
-    #     df['D в интервале'] = pd.Series('+')
-    # else:
-    #     result = False
-    #     df['D в интервале'] = pd.Series('-')
+    df2 = pd.DataFrame()
+    df2['D_teor'] = pd.Series(D_teor)
+    # доверительные интервалы для дисперсии
+    dov_int_D = np.zeros((2))
+    dov_int_D[0] = (n - 1) * D / (scipy.stats.chi2.ppf(1 - param['alpha'] / 2, n-1))
+    dov_int_D[1] = (n - 1) * D / (scipy.stats.chi2.ppf(param['alpha'] / 2, n-1))
+    df2['Нижнее знач. дов. интервала D'] = np.round(pd.Series(dov_int_D[0]), 5)
+    df2['Верхнее знач. дов. интервала D'] = np.round(pd.Series(dov_int_D[1]), 5)
+    if D_teor > dov_int_D[0] and D_teor < dov_int_D[1]:
+        result = True
+        df2['D в интервале'] = pd.Series('+')
+    else:
+        result = False
+        df2['D в интервале'] = pd.Series('-')
+    
+    print(f'Для n={n}')
+    df.to_csv('KM/CompSim_lab2/out.csv', header=False, index=False)
     print(df)
-    fig, ax = plot.subplots()
-    fig.patch.set_visible(False)
-    ax.axis('off')
-    ax.axis('tight')
-    table = ax.table(cellText=df.values, colLabels=df.columns, loc='center')   
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    fig.tight_layout()
+    print(df1)
+    print(df2)
     plot.show()
     return result
 
@@ -209,11 +196,30 @@ def test3(x, n, param):
     
     res1 = test1(x, n, param)
     res2 = test2(x, n, param)
-
-    if(res1 and res2):
-        return True
+    result = False
+    df = pd.DataFrame()
+    if(res1):
+        df['Test1'] = pd.Series('+')
     else:
-        return False
+        df['Test1'] = pd.Series('-')
+    
+    if(res2):
+        df['Test2'] = pd.Series('+')
+    else:
+        df['Test2'] = pd.Series('-')
+    
+    if(res1 and res2):
+        result = True
+    fig, ax = plot.subplots()
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+    table = ax.table(cellText=df.values, colLabels=df.columns, loc='center')   
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    fig.tight_layout()
+    plot.show() 
+    return result
 
 def chi_test(x, n, param):
     x_new = []
@@ -229,14 +235,26 @@ def chi_test(x, n, param):
     for i in range(int(param['K1'])):
         S = S + (kint[0][i] - P)**2 / P
     S = S * len(x)
+    print(f'Для {n}')
+    print(f'S={S}')
     plot.show()
-    if scipy.stats.chi2.ppf(1-param['alpha'], param['K1'] - 1) > S:
-        return True
+    ur = scipy.stats.chi2.ppf(1-param['alpha'], param['K1'] - 1)
+    print(f'Уровень значимости = {ur}')
+    if ur > S:
+        print('Гипотеза по хи-квадрат не отклоняется')
+        return True #гипотеза по хи-квадрат не отклоняется
     else:
-        return False
+        print('Гипотеза по хи-квадрат отклоняется')
+        return False #гипотеза по хи-квадрат  отклоняется
 
 # функция распределения
 F = lambda x, n: x/ (n - 1) 
+e = 2.72
+def calc_K(S):
+    K = 0
+    for i in range(-100, 1000):
+        K += ((-1) ** i) * math.exp((-2 * (i ** 2) * (S ** 2)))
+    return K
 
 def kolmogorov(x, n, param):
     x_new = []
@@ -256,23 +274,29 @@ def kolmogorov(x, n, param):
     D_p = max(D_plus)
     D_m = max(D_minus)
     D = max(D_m, D_p)
-    # K = надо посчитать чему равно К
     S = (6 * n * D + 1) / (6 * np.sqrt(n))
+    K = calc_K(S)
+    print(f'Для {n}')
+    print(f'S={S}')
     P = 1 - K
+    print(f'P={P}')
     if(P > param['alpha']):
+        print('Гипотеза по Колмагорова не отклоняется')
         return True # нет оснований для отклонения
     else:
-        S_krit = 1.3581
-        if(S > S_krit):
-            return False # отклоняется
-        else:
-            return True
+        # S_krit = 1.3581
+        # if(S > S_krit):
+        print('Гипотеза по Колмагорова отклоняется')
+        return False # отклоняется
+        # else:
+        #     print('Гипотеза по Колмагорова не отклоняется')
+        #     return True
 
 
 def main():
-    param = convert_param('KM\CompSim_lab2\input.txt')
+    param = convert_param('KM/CompSim_lab2/input.txt')
     N = 1000
-    gen = 1
+    gen = 2
     if (gen == 1):
         x = create_freq(N, param)
     else:
@@ -287,7 +311,13 @@ def main():
         test2(x, 40, param)
         test2(x, 100, param)
 
-        # test3(x, 40 / int(param['r']), param)
-        # test3(x, 100 / int(param['r']), param)
+        # test3(x, int(40 / int(param['r'])), param)
+        # test3(x, int(100 / int(param['r'])), param)
+
+        # chi_test(x, 40, param)
+        # chi_test(x, 100, param)
+
+        # kolmogorov(x, 40, param)
+        # kolmogorov(x, 100, param)
 
 main()
