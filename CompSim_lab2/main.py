@@ -4,6 +4,7 @@ import matplotlib.pyplot as plot
 import random
 import scipy.stats
 import pandas as pd
+from pandas.plotting import table
 
 def read_param(path):
     input = []
@@ -67,7 +68,7 @@ def calc_period(x):
 def calc_Q(x):
     Q = 0
     for i in range(len(x)-1):
-        if(x[i]>x[i+1]):
+        if(x[i] > x[i+1]):
             Q += 1
     return Q
 
@@ -78,11 +79,30 @@ def test1(x, n, param):
     U = scipy.stats.norm.ppf(1 - param['alpha']/2)
     Q = calc_Q(x_new)
     Q_ = n / 2
-    Q_nizh = Q - (U * np.sqrt(n))/2
-    Q_verh = Q + (U * np.sqrt(n))/2
+    Q_nizh = Q - ((U * math.sqrt(n))/2)
+    Q_verh = Q + ((U * math.sqrt(n))/2)
     test = False
-    if(Q_ >= Q_nizh and Q_<= Q_verh):
+    df = pd.DataFrame()
+    df['Нижнее знач. дов. интервала'] = np.round(pd.Series(Q_nizh), 5)
+    df['Верхнее знач. дов. интервала'] = np.round(pd.Series(Q_verh), 5)
+    df['n'] = pd.Series(n)
+    df['Q_'] = pd.Series(Q_)
+    df['Q'] = pd.Series(Q)
+    if(Q_ >= Q_nizh and Q_ <= Q_verh):
+        df['Test'] = '+'
         test = True
+    else:
+        df['Test'] = '-'
+    print(df)
+    fig, ax = plot.subplots()
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+    table = ax.table(cellText=df.values, colLabels=df.columns, loc='center')   
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    fig.tight_layout()
+    plot.show()
     return test
 
 def create_table(val1, val2, val3, val4, val5, val6, columns):
@@ -118,32 +138,65 @@ def test2(x, n, param):
     D = np.var(x_new)
 
     U = scipy.stats.norm.ppf(1 - param['alpha']/2)
+    df = pd.DataFrame()
     # create dov int
     dov_int = np.zeros((int(param['K1']), 2))
     for i in range (int(param['K1'])):
         dov_int[i][0] = kint[0][i] - U * math.sqrt((int(param['K1']) - 1) / n) / int(param['K1'])
         dov_int[i][1] = kint[0][i] + U * math.sqrt((int(param['K1']) - 1) / n) / int(param['K1'])
+        df['Нижнее знач. дов. интервала'] = [np.round(pd.Series(dov_int[i][0]), 5)  for i in range(int(param['K1']))]
+        df['Верхнее знач. дов. интервала'] = [np.round(pd.Series(dov_int[i][1]), 5) for i in range(int(param['K1']))]
 
+    df['v теоретическое'] = str(np.round(v, 3))
+    result = False
     temp = []
-    result = True
     for i in range(int(param['K1'])):
         if v > dov_int[i][0] and v < dov_int[i][1]:
+            temp.append('+')
             result = True
         else:
-            result = False
-    M_teor = int(param['m']) / 2
-    D_teor = int(param['m']) ** 2 / 12
-    # доверительные интервалы для мат. ожидания
-    dov_int_M = np.zeros((2))
-    dov_int_M[0] = M - U * math.sqrt(D) / math.sqrt(n)
-    dov_int_M[1] = M + U * math.sqrt(D) / math.sqrt(n)
+            temp.append('-')
+    df['v в интервале'] = temp
 
-    # доверительные интервалы для дисперсии
-    dov_int_D = np.zeros((2))
+    # M_teor = int(param['m']) / 2
+    # D_teor = int(param['m']) ** 2 / 12
+    # df['M_teor'] = pd.Series(M_teor)
+    # # доверительные интервалы для мат. ожидания
+    # dov_int_M = np.zeros((2))
+    # dov_int_M[0] = M - U * math.sqrt(D) / math.sqrt(n)
+    # dov_int_M[1] = M + U * math.sqrt(D) / math.sqrt(n)
+    # df['Нижнее знач. дов. интервала M'] = np.round(pd.Series(dov_int_M[i][0]), 5)
+    # df['Верхнее знач. дов. интервала M'] = np.round(pd.Series(dov_int_M[i][1]), 5)
+    # if M_teor > dov_int_M[i][0] and M_teor < dov_int_M[i][1]:
+    #     result = True
+    #     df['M в интервале'] = pd.Series('+')
+    # else:
+    #     result = False
+    #     df['M в интервале'] = pd.Series('-')
 
-    dov_int_D[0] = (n - 1) * D / (scipy.stats.chi2.ppf(1 - param['alpha'] / 2, n-1))
-    dov_int_D[1] = (n - 1) * D / (scipy.stats.chi2.ppf(param['alpha'] / 2, n-1))
-
+    # df['D_teor'] = pd.Series(D_teor)
+    # # доверительные интервалы для дисперсии
+    # dov_int_D = np.zeros((2))
+    # dov_int_D[0] = (n - 1) * D / (scipy.stats.chi2.ppf(1 - param['alpha'] / 2, n-1))
+    # dov_int_D[1] = (n - 1) * D / (scipy.stats.chi2.ppf(param['alpha'] / 2, n-1))
+    # df['Нижнее знач. дов. интервала D'] = np.round(pd.Series(dov_int_D[i][0]), 5)
+    # df['Верхнее знач. дов. интервала D'] = np.round(pd.Series(dov_int_D[i][1]), 5)
+    # if D_teor > dov_int_D[i][0] and D_teor < dov_int_D[i][1]:
+    #     result = True
+    #     df['D в интервале'] = pd.Series('+')
+    # else:
+    #     result = False
+    #     df['D в интервале'] = pd.Series('-')
+    print(df)
+    fig, ax = plot.subplots()
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+    table = ax.table(cellText=df.values, colLabels=df.columns, loc='center')   
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    fig.tight_layout()
+    plot.show()
     return result
 
 
@@ -216,12 +269,10 @@ def kolmogorov(x, n, param):
             return True
 
 
-
-
 def main():
     param = convert_param('KM\CompSim_lab2\input.txt')
     N = 1000
-    gen = 2
+    gen = 1
     if (gen == 1):
         x = create_freq(N, param)
     else:
@@ -230,11 +281,11 @@ def main():
     if(T < 100):
         print('Change parametrs')
     else:
-        kolmogorov(x, 40, param)
+        # test1(x, 40, param)
         # test1(x, 100, param)
 
-        # test2(x, 40, param)
-        # test2(x, 100, param)
+        test2(x, 40, param)
+        test2(x, 100, param)
 
         # test3(x, 40 / int(param['r']), param)
         # test3(x, 100 / int(param['r']), param)
