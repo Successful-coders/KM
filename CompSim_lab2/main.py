@@ -121,7 +121,7 @@ def test2(x, n, param):
     result = False
     temp = []
     for i in range(int(param['K1'])):
-        if kint[0][i] > dov_int[i][0] and kint[0][i] < dov_int[i][1]:
+        if v > dov_int[i][0] and v < dov_int[i][1]:
             temp.append('+')
             result = True
         else:
@@ -142,7 +142,7 @@ def test2(x, n, param):
     dov_int_M[1] = M + U * math.sqrt(D) / math.sqrt(n)
     df1['Нижнее знач.'] = np.round(pd.Series(dov_int_M[0]), 5)
     df1['Верхнее знач.'] = np.round(pd.Series(dov_int_M[1]), 5)
-    if M > dov_int_M[0] and M < dov_int_M[1]:
+    if M_teor > dov_int_M[0] and M_teor < dov_int_M[1]:
         result = True
         df1['M в интервале'] = pd.Series('+')
     else:
@@ -158,7 +158,7 @@ def test2(x, n, param):
     dov_int_D[1] = (n - 1) * D / (scipy.stats.chi2.ppf(param['alpha'] / 2, n-1))
     df2['Нижнее знач.'] = np.round(pd.Series(dov_int_D[0]), 5)
     df2['Верхнее знач.'] = np.round(pd.Series(dov_int_D[1]), 5)
-    if D > dov_int_D[0] and D < dov_int_D[1]:
+    if D_teor > dov_int_D[0] and D_teor < dov_int_D[1]:
         result = True
         df2['D в интервале'] = pd.Series('+')
     else:
@@ -240,15 +240,16 @@ def chi_test(x, n, param):
 
     for i in range(int(param['K1'])):
         S = S + (kint[0][i] - P)**2 / P
-    S = S * len(x)
+
+    S = S * n
     print(f'Для {n}')
     print(f'S={S}')
-    plot.show()
     
-    p = (1 /(2**(int(param['r'])/2)*math.gamma(int(param['r'])/2)))*scipy.integrate.quad(lambda s:s**((int(param['r'])/2)-i)*np.exp(-s/2), S, np.inf)[0]
+    # p = 1 /(2**(int(param['r'])/2)*math.gamma(int(param['r'])/2))*scipy.integrate.quad(lambda x:x**((int(param['r'])/2)-1)*np.exp(-x/2), S, np.inf)[0]
+    p = (1 /(2*math.gamma(1)))*scipy.integrate.quad(lambda x:x**(0)*np.exp(-x/2), S, np.inf)[0]
     print(f'Уровень значимости = {p}')
-
-    if p < param['alpha']:
+    plot.show()
+    if p > param['alpha']:
         print('Гипотеза по хи-квадрат не отклоняется')
         return False
     else:
@@ -257,12 +258,12 @@ def chi_test(x, n, param):
     plot.show()
 
 # функция распределения
-F = lambda x, n: x/ (n - 1) 
+F = lambda x: (x - 1)/ (100 - 1)
 e = 2.72
 def calc_K(S):
     K = 0
-    for i in range(-100, 1000):
-        K += ((-1) ** i) * math.exp((-2 * (i ** 2) * (S ** 2)))
+    for k in range(-100,100):
+        K = K + ((-1) ** k) * math.exp(-2 * (k ** 2) * (S ** 2))
     return K
 
 def kolmogorov(x, n, param):
@@ -271,14 +272,13 @@ def kolmogorov(x, n, param):
         x_new.append(x[i])
 
     x_new.sort()
-
-    D_plus = []
     i = 1
+    D_plus = []
     D_minus = []
-    for x in x_new:
-        D_minus.append(F (x, n) - (i - 1) / n)
-        D_plus.append(i / n - F(x, n))
-        i = i + 1
+    for x_f in x_new:
+        D_minus.append(F (x_f) - (i - 1) / n)
+        D_plus.append(i / n - F(x_f))
+        i += 1
 
     D_p = max(D_plus)
     D_m = max(D_minus)
@@ -293,19 +293,14 @@ def kolmogorov(x, n, param):
         print('Гипотеза по Колмагорова не отклоняется')
         return True # нет оснований для отклонения
     else:
-        # S_krit = 1.3581
-        # if(S > S_krit):
         print('Гипотеза по Колмагорова отклоняется')
         return False # отклоняется
-        # else:
-        #     print('Гипотеза по Колмагорова не отклоняется')
-        #     return True
 
 
 def main():
-    param = convert_param('KM/CompSim_lab2/input.txt')
+    param = convert_param('CompSim_lab2/input.txt')
     N = 1000
-    gen = 1
+    gen = 2
     if (gen == 1):
         x = create_freq(N, param)
     else:
@@ -323,10 +318,10 @@ def main():
         # test3(x, int(40 / int(param['r'])), param)
         # test3(x, int(100 / int(param['r'])), param)
 
-        # chi_test(x, 40, param)
-        # chi_test(x, 100, param)
+        chi_test(x, 40, param)
+        chi_test(x, 100, param)
 
-        kolmogorov(x, 40, param)
-        kolmogorov(x, 100, param)
+        # kolmogorov(x, 40, param)
+        # kolmogorov(x, 100, param)
 
 main()
