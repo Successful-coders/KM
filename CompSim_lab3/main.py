@@ -90,15 +90,15 @@ def degree_law(k):
     sum_deg = sum(degree)
     return degree, sum_deg
 
-def chi_test_std(p):
+def chi_test_std(p, interv):
     # статистика
     alpha = 0.05
     S=0
-    K = len(p)
+    K = interv
     S = 1
     Xi = list(set(p))
     for x in Xi:
-        S += x * p.count(x) / len(p)
+        S += x * p.count(x) / K
 
     print('Статистика S =', np.round(S, 3))
     print('Статистика S крит. =', np.round(chi2.ppf(1-alpha, K - 1), 3))
@@ -128,14 +128,16 @@ def discret_rek(p_rav, n):
             P = degree[i]
         res_seq.append(i)
     # Определение эффективности алгоритма
-    S = chi_test_std(res_seq)
-    K = math.ceil(S * len(res_seq))
-    print('Число иттераций: {0}\n'.format(K))
     weights = np.ones_like(res_seq) / len(res_seq)
     kint = plot.hist(res_seq, weights=weights)
+    interv = len(kint[0]) 
+    print('Число интервалов=', interv)
+    S = chi_test_std(res_seq, interv)
+    K = math.ceil(S * len(res_seq))
+    print('Число иттераций: {0}\n'.format(K))
     plot.xlabel('k')
     plot.ylabel('Частота')
-    title = 'Стандартный алгоритм при n = ' + str(n) 
+    title = 'Стандартный алгоритм при k = ' + str(interv) 
     plot.title(title)
     plot.show()
     return res_seq
@@ -204,8 +206,27 @@ def nestd(p_rav, n):
     title = 'Нестандартный алгоритм при n = ' + str(n) + ', λ = ' + str(L) 
     plot.title(title)
     plot.show()
-    return res_seq
+    return res_seq, K
 
+def teor_puasson(n, l, K):
+    puason = [l ** k / math.factorial(k) * math.exp(-l) for k in range(K)]
+    plot.bar(np.arange(K), puason)
+    plot.xticks(np.arange(K), np.arange(K))
+    plot.xlabel('k')
+    plot.ylabel('Частота')
+    title = 'Теоретические частоты Пуассона при k = ' + str(n) + ', λ = ' + str(l)
+    plot.title(title) 
+    plot.show()
+
+def teor_degree(n):
+    degr = [1 / (2 ** k) for k in range(n)]
+    plot.bar(np.arange(n), degr)
+    plot.xticks(np.arange(n), np.arange(n))
+    plot.xlabel('k')
+    plot.ylabel('Частота')
+    title = 'Теоретические частоты степенного закона при k = ' + str(n)
+    plot.title(title) 
+    plot.show()
 
 
 def main():
@@ -226,13 +247,20 @@ def main():
         x_100.append(x[i])
     
     # задаем дискретную стандартную рекурентную
-    disc_40 = discret_rek(x_40, 40)
+    # disc_40 = discret_rek(x_40, 40)
+    # print(disc_40)
+    # teor_degree(6)
     disc_100 = discret_rek(x_100, 100)
+    print(disc_100)
+    teor_degree(10)
 
     # задаем дискретную нестандартным
-    # nestand_dic_40 = nestd(x_40, 40)
-    # nestand_dic_100 = nestd(x_100, 100)
+    # nestand_dic_40, K = nestd(x_40, 40)
+    # teor_puasson(40, 7, K)
     # print(nestand_dic_40)
+    # nestand_dic_100, K = nestd(x_100, 100)
+    # teor_puasson(100, 7, K)
+    # print(nestand_dic_100)
     
 
 main()
