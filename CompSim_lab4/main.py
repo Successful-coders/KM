@@ -96,7 +96,8 @@ def exp_cdf(x, params):
     vych = (1 / l) * math.exp(-(x / l))
     return 1 - vych
 
-def inv_func(x, param):
+# FIX ME
+def inv_func(x, param): 
     a = exp_cdf(x, param)
     l = param['l']
     chis = l * (1 - a)
@@ -156,7 +157,15 @@ def plot_pdf_theoretical_and_empirical(pdf, params, sample, xlims=10, ylims=1):
     plt.xticks(bin_edges)
     plt.show()
 
-
+def create_table(df):
+    fig, ax = plt.subplots()
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+    table = ax.table(cellText=df.values, colLabels=df.columns, loc='center')   
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    fig.tight_layout()
 
 def main():
     param = convert_param('CompSim_lab4/input.txt')
@@ -168,6 +177,11 @@ def main():
     for i in range(50):
         x_array[i] = inv_func(x[i], param)
     # plot_pdf_and_cdf(exp_pdf, exp_cdf, param)
-    plot_pdf_theoretical_and_empirical(exp_pdf, param, x_array)
+    # plot_pdf_theoretical_and_empirical(exp_pdf, param, x_array)
+    
+    df = pd.DataFrame()
+    df['Критерий'] = 1
+    create_table(df)
+    plt.show()
 
 main()
