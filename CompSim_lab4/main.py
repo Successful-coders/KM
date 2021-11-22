@@ -159,7 +159,7 @@ def plot_pdf_theoretical_and_empirical(pdf, params, sample, xlims=10, ylims=1):
 
 
 def main():
-    param = convert_param('CompSim_lab4/input.txt')
+    param = convert_param('KM/CompSim_lab4/input.txt')
     N = 1000
     x = create_freq(N, param)
     T, x = calc_period(x)
@@ -167,7 +167,7 @@ def main():
     x_array = np.empty(50)
     for i in range(50):
         x_array[i] = inv_func(x[i], param)
-    # plot_pdf_and_cdf(exp_pdf, exp_cdf, param)
-    plot_pdf_theoretical_and_empirical(exp_pdf, param, x_array)
+    plot_pdf_and_cdf(exp_pdf, exp_cdf, param)
+    # plot_pdf_theoretical_and_empirical(exp_pdf, param, x_array)
 
 main()
