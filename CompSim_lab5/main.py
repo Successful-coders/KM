@@ -10,10 +10,12 @@ from scipy.optimize import minimize
 import sys
 
 x0 = {
-    (0, 1): {'a': -4, 'b': 10},
-    (3, 2.5): {'a': -4, 'b': 30},
-    (10, 0.4): {'a': 1, 'b': 10}
+    (0, 1): {'a': -10, 'b': 15},
+    (3, 2.5): {'a': -10, 'b': 15},
+    (10, 0.4): {'a': -4, 'b': 20}
 }
+
+output = open('output.txt', 'w')
 
 def read_param(path):
     input = []
@@ -132,7 +134,7 @@ def fin_max_pdf(pdf, params, x0):
 # Построение графика плотности распределения
 #   @pdf - плотность функции распределения
 #   @params - параметры распределения
-def plot_pdf(pdf, params):
+def plot_pdf(pdf, params, pointx=[], pointy=[]):
     mu, var = params
 
     # Точки графика
@@ -140,13 +142,13 @@ def plot_pdf(pdf, params):
     y = [pdf(point, mu, var) for point in x]
 
     # Создание полотна
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(8, 4))
     ax = fig.add_subplot(111)
     fig.suptitle('Плотность распределения Лапласа с параметрами: \u03BC = {0}; \u03C3 = {1}'.format(mu, var))
 
     # Ограничение значений осей
     ax.set_xlim(min(x), max(x))
-    ax.set_ylim(-0.5, 1)
+    # plt.plot(pointx, pointy)
 
     # Cетка
     ax.grid()
@@ -174,22 +176,23 @@ def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval):
 
     # Эмпирические значения
     weights, bins_edges = np.histogram(sample, bins=K, range=(a, b))
-
+    # weights, bins_edges = np.histogram(x, bins=K, range=(a, b))
     # Число попаданий переведем в высоты столбца гистограммы
     weights = np.array(weights) / n
     for i in range(len(weights)):
         weights[i] /= (bins_edges[i+1]-bins_edges[i])
 
     # Создание полотна
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(8, 4))
     fig.suptitle('Распределение Лапласа с параметрами: \u03BC = {0}; \u03C3 = {1}\nДлина по-следовательности N = {2}'\
                  .format(mu, var, len(sample)))
 
     ax = fig.add_subplot(111)
 
     # Ограничение значений осей
+    # ax.set_xlim(min(bins_edges), max(bins_edges))
+    # ax.set_ylim(-0.5, 1)
     ax.set_xlim(min(x), max(x))
-    ax.set_ylim(-0.5, 1)
     # Cетка
     ax.grid()
 
@@ -198,8 +201,8 @@ def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval):
     # Вывод теоретической функции
     ax.plot(x, y, linewidth=3)
     # Значения оси Ox
-    plt.xticks(bins_edges)
-    ax.tick_params(axis='x', rotation=90)
+    # plt.xticks(bins_edges)
+    # ax.tick_params(axis='x', rotation=90)
     plt.show()
 
 
@@ -212,44 +215,43 @@ def chi_square_test(sample, cdf, params, interval, alpha=0.05):
     # Длина последовательности
     n = len(sample)
     mu, v = params
+    a, b = interval
     # Число интервалов
-    K = int(5 * np.log10(n))
+    K = int(5*np.log10(n))
 
     # Частоты попадания в i-интервал
-    weights, bins_edges = np.histogram(sample,
-                                       bins=K,
-                                       range=(0, np.ceil(max(sample))))
+    weights, bins_edges = np.histogram(sample, bins=K, range=(a, b))
+    weights = np.array(weights) / n
 
     # Значение статистики
     S = 0
     for i in range(K):
-        P = cdf(bins_edges[i + 1], mu, v) - cdf(bins_edges[i], mu, v)
-        S += pow(weights[i] / len(sample) - P, 2) / P
+        P = cdf(bins_edges[i+1], mu, v) - cdf(bins_edges[i], mu, v)
+        S += pow(weights[i] - P, 2) / P
     S *= n
 
     # Критическое значение статистики
-    S_crit = stats.chi2.ppf(1 - alpha, K - 1)
+    S_crit = stats.chi2.ppf(1-alpha, K-1)
 
-    print('Критерий \u03c7\u00b2 Пирсона')
-    print('Значение статистики хи-квадрат: {0}'.format(np.round(S, 3)))
-    print('Критическое значение: {0}'.format(np.round(S_crit, 3)))
+    print('Критерий \u03c7\u00b2 Пирсона', file=output )
+    print('Число интервалов K: {0}'.format(K), file=output )
+    print('Значение статистики хи-квадрат: {0}'.format(np.round(S, 3)), file=output )
+    print('Критическое значение: {0}'.format(np.round(S_crit, 3)), file=output )
     if S < S_crit:
-        print('Гипотеза о согласии не отвергается\n')
+        print('Гипотеза о согласии не отвергается\n', file=output )
     else:
-        print('Гипотеза о согласии отвергается\n')
+        print('Гипотеза о согласии отвергается\n', file=output )
 
     # Решение через достигнутый уровень значимости
-    p = integrate.quad(lambda x: pow(x, (K - 1) / 2 - 1) * math.exp(-x / 2), S,
-                       math.inf)
+    p = integrate.quad(lambda x: pow(x, (K - 1) / 2 - 1) * np.exp(-x / 2), S, math.inf)
     p /= pow(2, (K - 1) / 2) * gamma((K - 1) / 2)
 
-    print(
-        'Достигнутый уровень значимости: {0}\nУровень значимости: {1}'.format(
-            np.round(p[0], 4), alpha))
+    print('Достигнутый уровень значимости: {0}\nУровень значимости: {1}'.format(np.round(p[0], 8), alpha), file=output )
     if p[0] > alpha:
-        print('Гипотеза о согласии не отвергается\n\n')
+        print('Гипотеза о согласии не отвергается\n\n', file=output )
     else:
-        print('Гипотеза о согласии отвергается\n\n')
+        print('Гипотеза о согласии отвергается\n\n' , file=output)
+
 
 # Вычисление значения I(z)
 def I(z, v):
@@ -279,13 +281,13 @@ def cramer_von_mises_test(sample, cdf, params):
             S += pow(cdf(sample[i], params[0], params[1]) - (2*(i+1)-1)/(2*n), 2)
 
 
-    print('Критерий \u03C9\u00b2-Крамера-Мизеса-Смирнова')
-    print('Значение статистики: {0}'.format(np.round(S, 3)))
-    print('Критическое значение: {0}'.format(S_critical))
+    print('Критерий \u03C9\u00b2-Крамера-Мизеса-Смирнова', file=output)
+    print('Значение статистики: {0}'.format(np.round(S, 3)), file=output)
+    print('Критическое значение: {0}'.format(S_critical), file=output)
     if S < S_critical:
-        print('Гипотеза о согласии не отвергается\n')
+        print('Гипотеза о согласии не отвергается\n', file=output)
     else:
-        print('Гипотеза о согласии отвергается\n')
+        print('Гипотеза о согласии отвергается\n', file=output)
 
     # Решение через достигнутый уровень значимости
     a1 = 0
@@ -298,19 +300,18 @@ def cramer_von_mises_test(sample, cdf, params):
 
     p = 1 - a1
 
-    print('Достигнутый уровень значимости: {0}\nУровень значимости: {1}'.format(np.round(p, 4), 0.05))
+    print('Достигнутый уровень значимости: {0}\nУровень значимости: {1}'.format(np.round(p, 4), 0.05), file=output)
     if p > 0.05:
-        print('Гипотеза о согласии не отвергается\n\n\n')
+        print('Гипотеза о согласии не отвергается\n\n\n', file=output)
     else:
-        print('Гипотеза о согласии отвергается\n\n\n')
+        print('Гипотеза о согласии отвергается\n\n\n', file=output)
 
 
 
 def main():
     np.random.seed(5)
 
-    output = open('output.txt', 'w', encoding='utf-8')
-    param = convert_param('KM\CompSim_lab5\input.txt')
+    param = convert_param('CompSim_lab5/input.txt')
 
     # Параметры распределения
     mu = param['m']
@@ -322,43 +323,49 @@ def main():
     # Выбор множества точек
     M = fin_max_pdf(pdf=laplace.pdf, params=[mu, v], x0=a)
 
-    plot_pdf(pdf=laplace.pdf , params=[mu, v])
 
-    print('Интервал моделирования: a = {0}, b = {1}\nM = {2}\n'.format(np.round(a, 3), np.round(b, 3), np.round(M, 3)))
-    n = 50
+    print('Интервал моделирования: a = {0}, b = {1}\nM = {2}\n'.format(np.round(a, 3), np.round(b, 3), np.round(M, 3)), file=output)
+    N = [50, 200, 1000]
 
     # Генерирование равномерно распределенной случайной величины
-    arr = np.random.uniform(0, 1, 10000)
+    arr = np.random.uniform(0, 1, 1000000)
 
     x_array = []
+    pointx = []
+    pointy = []
+    # plot_pdf(laplace.pdf, params=[mu, v], pointx=pointx, pointy=pointy)
+    for n in N:
+        i = 0
+        # Начальная точка замера времени моделирования
+        while len(x_array) < n:
+            # Берем пару равномерно распределенных чисел
+            alpha1, alpha2 = arr[i], arr[i+1]
+            i += 1
 
-    # Начальная точка замера времени моделирования
-    while len(x_array) < n:
-        # Берем пару равномерно распределенных чисел
-        alpha1, alpha2 = arr[0], arr[1]
+            # Находим координаты точки
+            x = a + alpha1 * (b - a)
+            y = alpha2 * M
+            pointx.append(x)
+            pointy.append(y)
 
-        # Находим координаты точки
-        x = a + alpha1 * (b - a)
-        y = alpha2 * M
 
-        # Принимаем или отвергаем новую точку
-        if y < laplace.pdf(x, mu, v):
-            x_array.append(x)
+            # Принимаем или отвергаем новую точку
+            if y < laplace.pdf(x, mu, v):
+                x_array.append(x)
 
-        # Отбрасываем использованные величины
-        arr = np.delete(arr, [0, 1])
+        # plot_pdf(pdf=laplace.pdf , params=[mu, v], pointx, pointy)
+        print(f'N={n}', file=output)
+        # print('N = {0}\nX = {{'.format(n, x_array), file=output)
+        # for i in range(n):
+            # print(np.round(x_array[i], 3), file=output)
+        # print('}', file=output)
+        print('Равномерно распределенных величин потребовалось: {0}\n'.format(len(arr)), file=output)
 
-    print('N = {0}\nX = {{'.format(n, x_array))
-    for i in range(n):
-        print(np.round(x_array[i], 3))
-    print('}')
-    print('Равномерно распределенных величин потребовалось: {0}\n'.format(10000-len(arr)))
+        # plot_pdf_theoretical_and_empirical(pdf=laplace.pdf, params=[mu, v], sample=x_array, interval=[a,b])
 
-    plot_pdf_theoretical_and_empirical(pdf=laplace.pdf, params=[mu, v], sample=x_array, interval=[a,b])
+        # chi_square_test(sample=x_array, cdf=laplace.cdf, params=[mu, v], interval=[a,b])
 
-    chi_square_test(sample=x_array, cdf=laplace.cdf, params=[mu, v], interval=[a,b])
-
-    cramer_von_mises_test(sample=x_array, cdf=laplace.cdf, params=[mu, v])
+        cramer_von_mises_test(sample=x_array, cdf=laplace.cdf, params=[mu, v])
 
 
 main()
