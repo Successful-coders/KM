@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 from scipy.special import gamma
 import scipy.stats as stats
+import random
 
 
 np.random.seed(1)
@@ -15,7 +16,7 @@ np.random.seed(1)
 #   @pdf - плотность функции распределения
 #   @params - параметры распределения
 #   @interval - отрезок, на котором строится график
-def plot_pdf(pdf, params, interval=[0, 10]):
+def plot_pdf(pdf, params, interval=[-10, 10]):
     a, b= interval
 
     # Точки графика
@@ -27,7 +28,7 @@ def plot_pdf(pdf, params, interval=[0, 10]):
         y = [pdf(point, params[0], params[1]) for point in x]
 
     # Создание полотна
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(7, 5))
     ax = fig.add_subplot(111)
 
     # Ограничение значений осей
@@ -46,7 +47,7 @@ def plot_pdf(pdf, params, interval=[0, 10]):
 #   @params - параметры распределения
 #   @sample - выборка
 #   @interval - отрезок, на котором строится график
-def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval=[0, 10]):
+def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval=[-10, 10]):
     n = len(sample)
     a, b = interval
 
@@ -69,7 +70,7 @@ def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval=[0, 10]):
         weights[i] /= (bins_edges[i+1]-bins_edges[i])
 
     # Создание полотна
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(7, 5))
     fig.suptitle('Длина последовательности N = {0}'.format(len(sample)))
 
     ax = fig.add_subplot(111)
@@ -151,7 +152,7 @@ def I(z, v):
 #   @cdf - теоретическая функция распределения
 #   @params - параметры теоретического распределения
 def smirnov_test(sample, cdf, params, alpha=0.05):
-    mu, var = params
+    var = params
     n = len(sample)
     S_critical = stats.chi2.ppf(1-alpha, 2)
 
@@ -161,60 +162,71 @@ def smirnov_test(sample, cdf, params, alpha=0.05):
     # Находим Dn+, Dn-, Dn
     Dn_plus = np.empty(n)
     Dn_minus = np.empty(n)
-
+    c = cdf(sample[0], params[0])
     for i in range(n):
-        Dn_plus[i] = (i+1)/n - cdf(sample[i], mu, var)
-        Dn_minus[i] = cdf(sample[i], mu, var) - i/n
+        Dn_plus[i] = (i+1)/n - cdf(sample[i], params[0])
+        Dn_minus[i] = cdf(sample[i], params[0]) - i/n
 
     Dn = max(max(Dn_plus), max(Dn_minus))
 
     # Значение статистики
     S = pow(6*n*Dn + 1, 2) / (9*n)
 
-    print('Критерий Смирнова', file=output)
-    print('Значение статистики: {0}'.format(np.round(S, 3)), file=output)
-    print('Критическое значение: {0}'.format(np.round(S_critical, 3)), file=output)
+    print('Критерий Смирнова' )
+    print('Значение статистики: {0}'.format(np.round(S, 3)) )
+    print('Критическое значение: {0}'.format(np.round(S_critical, 3)) )
     if S < S_critical:
-        print('Гипотеза о согласии не отвергается\n', file=output)
+        print('Гипотеза о согласии не отвергается\n' )
     else:
-        print('Гипотеза о согласии отвергается\n', file=output)
+        print('Гипотеза о согласии отвергается\n' )
 
     # Решение через достигнутый уровень значимости
     p = np.exp(-S/2)
 
-    print('Достигнутый уровень значимости: {0}\nУровень значимости: {1}'.format(np.round(p, 4), alpha), file=output)
+    print('Достигнутый уровень значимости: {0}\nУровень значимости: {1}'.format(np.round(p, 4), alpha) )
     if p > alpha:
-        print('Гипотеза о согласии не отвергается\n\n\n\n', file=output)
+        print('Гипотеза о согласии не отвергается\n\n\n\n' )
     else:
-        print('Гипотеза о согласии отвергается\n\n\n\n', file=output)
+        print('Гипотеза о согласии отвергается\n\n\n\n' )
 
+# Математическое ожидание
+def mo(x):
+    m = 0
+    for i in range(len(x)):
+        m += x[i]
+    m /= len(x)
+    return m
 
+# Дисперсия
+def disp(x, m):
+    d = 0
+    for i in range(len(x)):
+        d += (x[i] - m)**2
+    d /= (len(x) - 1)
+    return d
 
 # Параметры распределения
-mu = 3
-var = 2
+var = 8
 
-n = 8
+n = 6
 
 # Отрисовка графиков теоретиических плотностей распределения
-plot_pdf(pdf=Student.pdf, params=[mu, var])
+plot_pdf(pdf=Student.pdf, params=[var])
 plot_pdf(pdf=stats.norm.pdf, params=[0, 1], interval=[-4, 4])
-plot_pdf(pdf=stats.chi2.pdf, params=[mu])
 plot_pdf(pdf=stats.chi2.pdf, params=[var])
 
 output = open('result.txt', 'w', encoding="utf-8")
 
-for N in [50]:
+for N in [50, 200, 1000]:
     print('Длина основной генерируемой последовательности N = {0}\n'.format(N))
 
-    chi2_array1 = []
-    chi2_array2 = []
+    chi2_arr = []
 
     # Начальная точка замера времени моделирования
     start_time = datetime.now()
 
-    # Моделирование стандартной нормальной величины методом суммирования с пара-метром n
-    snd_array = np.empty(N*(mu+var))
+    # Моделирование стандартной нормальной величины методом суммирования с параметром n
+    snd_array = np.empty(N*var)
     for i in range(len(snd_array)):
 
         # Генерирование n равномерное распределенных на (0; 1) чисел
@@ -243,66 +255,45 @@ for N in [50]:
     chi_square_test(sample=snd_array, cdf=stats.norm.cdf, interval=[-4, 4], params=[0, 1])
     smirnov_test(sample=snd_array, cdf=stats.norm.cdf, params=[0, 1])
 
-    # Моделирование распределения Хи-квадрат со степенями свободы mu и var
+    help_snd = snd_array
+    # Моделирование распределения Хи-квадрат со степенями свободы var
     for i in range(N):
         help1 = 0
-        help2 = 0
-
-        for j in range(mu):
-            help1 += pow(snd_array[0], 2)
-            snd_array = np.delete(snd_array, 0)
-        chi2_array1.append(help1)
-
         for j in range(var):
-            help2 += pow(snd_array[0], 2)
-            snd_array = np.delete(snd_array, 0)
-        chi2_array2.append(help2)
+            help1 += pow(help_snd[0], 2)
+            help_snd = np.delete(help_snd, 0)
+        chi2_arr.append(help1)
+
 
     # Вывод информации о вспомогательных распределениях
-    print('Параметры распределения \u03c7\u00b2: {0} cтепеней свобо-ды'.format(mu))
+    print('Параметры распределения \u03c7\u00b2: {0} cтепеней свободы'.format(var))
 
     print('Первые 50 элементов выборки:\nX={', end='')
     for i in range(50):
-        print(np.round(chi2_array1[i], 3), end=' ')
+        print(np.round(chi2_arr[i], 3), end=' ')
     print('}')
 
-    plot_pdf_theoretical_and_empirical(pdf=stats.chi2.pdf, params=[mu], sample=chi2_array1)
+    plot_pdf_theoretical_and_empirical(pdf=stats.chi2.pdf, params=[var], sample=chi2_arr)
 
-    chi_square_test(sample=chi2_array1, cdf=stats.chi2.cdf, params=[mu])
-    smirnov_test(sample=chi2_array1, cdf=stats.chi2.cdf, params=[mu])
-
-    # Для еще одной выборки
-    print('Параметры распределения \u03c7\u00b2: {0} cтепеней свобо-ды'.format(var))
-
-    print('Первые 50 элементов выборки:\nX={', end='')
-    for i in range(50):
-        print(np.round(chi2_array2[i], 3), end=' ')
-    print('}')
-
-    plot_pdf_theoretical_and_empirical(pdf=stats.chi2.pdf, params=[var], sample=chi2_array2)
-
-    chi_square_test(sample=chi2_array2, cdf=stats.chi2.cdf, params=[var])
-    smirnov_test(sample=chi2_array2, cdf=stats.chi2.cdf, params=[var])
-
+    chi_square_test(sample=chi2_arr, cdf=stats.chi2.cdf, params=[var])
+    smirnov_test(sample=chi2_arr, cdf=stats.chi2.cdf, params=[var])
 
     # Моделирование основного распределения
-    print('Моделирование распределения Фишера с параметрами: \u03BC = {0}; \u03BD = {1}\n'.format(mu, var))
-
     x_array = []
     for i in range(N):
-        x_array.append((chi2_array1[i] * var)/(mu * chi2_array2[i]))
+        zn = snd_array[i]/math.sqrt(chi2_arr[i])
+        x_array.append(math.sqrt(n) * zn)
 
-    print('X = {', end='', file=output)
+    print('X = {', end='' )
     for i in range(N):
-        print(np.round(x_array[i],3), end=' ', file=output)
-    print('}', file=output)
+        print(np.round(x_array[i],3), end=' ' )
+    print('}' )
 
-    print('Время моделирования выборки из {0} элементов: {1}'.format(N, datetime.now() - start_time))
-    print('Равномерно распределенных величин потребовалось: {0}\n'.format(n*N), file=output)
+    print('Равномерно распределенных величин потребовалось: {0}\n'.format(n*N) )
 
-    plot_pdf_theoretical_and_empirical(pdf=Student.pdf, params=[mu, var], sample=x_array)
+    plot_pdf_theoretical_and_empirical(pdf=Student.pdf, params=[var], sample=x_array)
 
-    chi_square_test(sample=x_array, cdf=Student.cdf, params=[mu, var])
-    smirnov_test(sample=x_array, cdf=Student.cdf, params=[mu, var])
+    chi_square_test(sample=x_array, cdf=Student.cdf, params=[var])
+    smirnov_test(sample=x_array, cdf=Student.cdf, params=[var])
 
 output.close()
