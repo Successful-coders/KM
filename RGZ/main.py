@@ -47,7 +47,7 @@ def plot_pdf(pdf, params, interval=[-10, 10]):
 #   @params - параметры распределения
 #   @sample - выборка
 #   @interval - отрезок, на котором строится график
-def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval=[-10, 10]):
+def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval=[-10, 20]):
     n = len(sample)
     a, b = interval
 
@@ -71,7 +71,7 @@ def plot_pdf_theoretical_and_empirical(pdf, params, sample, interval=[-10, 10]):
 
     # Создание полотна
     fig = plt.figure(figsize=(7, 5))
-    fig.suptitle('Длина последовательности N = {0}'.format(len(sample)))
+    # fig.suptitle('Длина последовательности N = {0}'.format(len(sample)))
 
     ax = fig.add_subplot(111)
 
@@ -208,16 +208,16 @@ def disp(x, m):
 # Параметры распределения
 var = 8
 
-n = 6
+n = 12
 
 # Отрисовка графиков теоретиических плотностей распределения
-plot_pdf(pdf=Student.pdf, params=[var])
-plot_pdf(pdf=stats.norm.pdf, params=[0, 1], interval=[-4, 4])
-plot_pdf(pdf=stats.chi2.pdf, params=[var])
+# plot_pdf(pdf=Student.pdf, params=[var])
+# plot_pdf(pdf=stats.norm.pdf, params=[0, 1], interval=[-4, 4])
+# plot_pdf(pdf=stats.chi2.pdf, params=[var])
 
 output = open('result.txt', 'w', encoding="utf-8")
 
-for N in [50, 200, 1000]:
+for N in [1000]:
     print('Длина основной генерируемой последовательности N = {0}\n'.format(N))
 
     chi2_arr = []
